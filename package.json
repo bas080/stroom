@@ -1,0 +1,19 @@
+{
+  "name": "stroom",
+  "version": "0.0.0",
+  "description": "Node functional style stream helpers",
+  "main": "stroom.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "stream",
+    "node",
+    "helpers"
+  ],
+  "author": "Bas Huis",
+  "license": "MIT",
+  "dependencies": {
+    "tape": "^4.10.1"
+  }
+}
