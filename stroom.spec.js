@@ -1,6 +1,18 @@
-const {Writable} = require('stream')
-const {concat, once} = require('./stroom')
+const {Writable, pipeline} = require('stream')
+const {concat, once, empty, map, flatMap, always} = require('./stroom')
 const {test} = require('tape')
+
+const identity = v => v
+
+const testError = new Error('test');
+
+const errorStream = (error = testError) => {
+  const stream = once('value')
+
+  stream.destroy(error)
+
+  return stream
+}
 
 function equals(values, assert) {
   let index = 0
@@ -40,3 +52,57 @@ test('concat([])', t => {
     .pipe(equals([], t.equals))
     .on('finish', () => t.end())
 })
+
+test('concat empties', t => {
+  concat([empty(), empty()])
+    .pipe(equals([], t.equals))
+    .on('finish', () => t.end())
+})
+
+test('map over empty', t => {
+  empty()
+    .pipe(map(identity))
+    .pipe(equals([], t.equals))
+    .on('finish', () => t.end())
+})
+
+test('flatMap empty', t => {
+  once(1).pipe(flatMap(v => empty()))
+    .pipe(equals([], t.equals))
+    .on('finish', () => t.end())
+})
+
+test('map over empty twice', t => {
+  t.plan(2)
+
+  const emptyStream = empty()
+
+  emptyStream
+    .pipe(equals([], t.equals))
+    .on('finish', () => t.pass('once'))
+
+  emptyStream
+    .pipe(equals([], t.equals))
+    .on('finish', () => t.pass('twice'))
+})
+
+
+test('stream errors are propagated', t => {
+  const streamFns = [
+    () => map(identity),
+    () => flatMap(() => empty()),
+    empty,
+    () => always(1),
+  ]
+
+  t.plan(streamFns.length)
+
+  streamFns.forEach(streamFn => {
+    const str = pipeline(
+      errorStream(),
+      streamFn(), error => {
+        t.equals(error, testError)
+      })
+  })
+})
+

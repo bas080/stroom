@@ -13,7 +13,8 @@
   ],
   "author": "Bas Huis",
   "license": "MIT",
-  "dependencies": {
-    "tape": "^4.10.1"
+  "dependencies": {},
+  "devDependencies": {
+    "tape": "^4.11.0"
   }
 }
