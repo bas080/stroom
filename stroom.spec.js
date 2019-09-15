@@ -1,10 +1,22 @@
 const {Writable, pipeline} = require('stream')
-const {concat, once, empty, map, flatMap, always} = require('./stroom')
 const {test} = require('tape')
+const {
+  wrap,
+  concat,
+  once,
+  empty,
+  map,
+  flatMap,
+  always,
+  fromPromise,
+  ifEmpty,
+} = require('./stroom')
 
 const identity = v => v
 
-const testError = new Error('test');
+const testObject = {}
+const testError = new Error('test')
+const testNumber = 42
 
 const errorStream = (error = testError) => {
   const stream = once('value')
@@ -86,7 +98,6 @@ test('map over empty twice', t => {
     .on('finish', () => t.pass('twice'))
 })
 
-
 test('stream errors are propagated', t => {
   const streamFns = [
     () => map(identity),
@@ -106,3 +117,38 @@ test('stream errors are propagated', t => {
   })
 })
 
+test('fromPromise resolves', t => {
+  const c = fromPromise(Promise.resolve(testNumber))
+    .pipe(equals([testNumber], t.equals))
+
+  c.on('finish', () => t.end())
+})
+
+test('fromPromise rejects', t => {
+  const c = fromPromise(Promise.reject(testError))
+    .pipe(equals([testError], t.equals))
+
+  c.on('finish', () => t.end())
+})
+
+test('wrap', t => {
+  const c = once(2)
+    .pipe(wrap(1, 3))
+    .pipe(equals([1,2,3], t.equals))
+
+  c.on('finish', () => t.end())
+})
+
+test('ifEmpty when empty', t => {
+  const c = ifEmpty(empty(), once(testObject))
+    .pipe(equals(([testObject]), t.equals))
+
+  c.on('finish', () => t.end())
+})
+
+test('ifEmpty when not empty', t => {
+  const c = ifEmpty(once(testNumber), once(testObject))
+    .pipe(equals(([testNumber]), t.equals))
+
+  c.on('finish', () => t.end())
+})

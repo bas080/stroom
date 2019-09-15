@@ -29,6 +29,35 @@ module.exports = {
   once: of,
   identity: of,
   always,
+
+  wrap,
+  tap,
+
+  ifEmpty,
+}
+
+function tap(doFn) {
+  const stream = new PassThrough({
+    objectMode: true,
+  })
+
+  stream.on('data', doFn)
+
+  return stream
+}
+
+function wrap(start, end) {
+  const stream = new PassThrough({
+    objectMode: true,
+    flush(cb) {
+      this.push(end)
+      cb()
+    }
+  })
+
+  stream.push(start)
+
+  return stream
 }
 
 function uniqBy(valueFn) {
@@ -68,6 +97,8 @@ function stringify(...args) {
   })
 }
 
+//TODO: Implement using the wrap stream.
+//TODO: toJson might be a better name. Consider renaming.
 function json(isObject = false) {
   let first = true
 
@@ -195,13 +226,38 @@ function of(value) {
     read() {}
   })
 
+  const fn = value => {
+    readable.push(value)
+    readable.push(null)
+  }
+
   Promise.resolve(value)
-    .then(value => {
-      readable.push(value)
-      readable.push(null)
-    })
+    .then(fn, fn)
 
   return readable
+}
+
+function ifEmpty(a, b) {
+  let empty = true
+
+  const stream = new PassThrough({
+    objectMode: true,
+  })
+
+  a.on('data', () => {
+    empty = false
+  })
+
+  a.on('end', () => {
+    if (empty)
+      b.pipe(stream)
+    else
+      stream.push(null)
+  })
+
+  a.pipe(stream, {end: false})
+
+  return stream
 }
 
 function empty() {
@@ -248,8 +304,7 @@ function concat(streams, destination) {
 
   if (!destination)
     return concat(streams, new PassThrough({
-      readableObjectMode: true,
-      writableObjectMode: true,
+      objectMode: true,
     }))
 
   const [x, ...xs] = streams

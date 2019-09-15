@@ -4,7 +4,7 @@
   "description": "Node functional style stream helpers",
   "main": "stroom.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node ./stroom.spec.js"
   },
   "keywords": [
     "stream",
